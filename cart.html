@@ -141,8 +141,11 @@
                         <textarea id="custNotes" rows="2" placeholder="أي تفاصيل إضافية"></textarea>
                     </div>
 
-                    <button class="btn-primary" id="checkoutBtn"><i class="fa-solid fa-credit-card"></i> ادفع الآن</button>
+                    <button class="btn-primary" id="checkoutBtn"><i class="fa-solid fa-credit-card"></i> ادفع الآن (فيزا/ماستركارد)</button>
                     <p class="summary-note">هتنتقل لصفحة الدفع الآمنة من XPay لاختيار طريقة الدفع المناسبة.</p>
+
+                    <button class="btn-outline" id="whatsappCheckoutBtn" style="width:100%;margin-top:10px;justify-content:center"><i class="fa-brands fa-whatsapp"></i> اطلب عن طريق واتساب (فودافون كاش / محافظ)</button>
+                    <p class="summary-note">لو هتدفع بفودافون كاش أو أي محفظة إلكترونية، اطلب من هنا وهنأكد معاك طريقة الدفع على واتساب.</p>
                 </div>
             `;
 
@@ -228,8 +231,27 @@
                     console.error(error);
                     showToast(error.message || "حصل خطأ أثناء تجهيز الدفع");
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> ادفع الآن';
+                    btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> ادفع الآن (فيزا/ماستركارد)';
                 }
+            });
+
+            document.getElementById("whatsappCheckoutBtn").addEventListener("click", () => {
+                const name = document.getElementById("custName").value.trim();
+                const phone = document.getElementById("custPhone").value.trim();
+                const address = document.getElementById("custAddress").value.trim();
+                const notes = document.getElementById("custNotes").value.trim();
+
+                if(!name || !phone || !address){
+                    showToast("من فضلك املأ الاسم ورقم الموبايل والعنوان");
+                    return;
+                }
+
+                if (!getCart().length){
+                    showToast("العربة فاضية");
+                    return;
+                }
+
+                sendOrderToWhatsApp({ name, phone, address, notes });
             });
         }
 
