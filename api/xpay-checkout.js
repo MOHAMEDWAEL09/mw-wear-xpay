@@ -1,8 +1,66 @@
 const XPAY_URL = "https://api.xpay.app/checkout/sessions";
 
+/* نفس رابط شيت المنتجات المستخدم في products.js — بيتحمل هنا كمان
+   عشان نتأكد من السعر الحقيقي بدل ما نصدق السعر الجاي من المتصفح
+   (لو حد لعب في الطلب من الـ DevTools وبعت سعر أقل) */
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSnV8Wp800X1TpnZBU3ej1AqJ9Mt_WE4vtYcUUUbaOWRnZR3mix6QkEVlHZcCklcXsSj8ahAEHMXKfO/pub?gid=1805255167&single=true&output=csv";
+
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json");
   res.end(JSON.stringify(body));
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        field += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      row.push(field); field = "";
+    } else if (char === '\n' || char === '\r') {
+      if (char === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); field = "";
+      rows.push(row); row = [];
+    } else {
+      field += char;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim() !== ""));
+}
+
+/* بيرجع Map من id للسعر والاسم الحقيقيين من الشيت.
+   لو الشيت مش متاح دلوقتي، بيرجع null عشان نعرف إننا مش قادرين
+   نتأكد ونتصرف بحذر بدل ما نمنع البيع بالكامل. */
+async function fetchRealProducts() {
+  try {
+    const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+    if (!res.ok) return null;
+    const text = await res.text();
+    const rows = parseCSV(text).slice(1);
+    const map = new Map();
+    rows.forEach(cols => {
+      const id = Number((cols[0] || "").trim());
+      const name = (cols[1] || "").trim();
+      const price = Number((cols[3] || "").trim());
+      if (Number.isFinite(id) && name && Number.isFinite(price) && price > 0) {
+        map.set(id, { name, price });
+      }
+    });
+    return map.size ? map : null;
+  } catch (e) {
+    console.error("Could not verify prices against sheet", e);
+    return null;
+  }
 }
 
 module.exports = async function handler(req, res) {
@@ -20,12 +78,23 @@ module.exports = async function handler(req, res) {
       return json(res, 400, { error: "بيانات العميل أو المنتجات ناقصة" });
     }
 
+    const realProducts = await fetchRealProducts();
+
     const lineItems = items.map((item) => {
-      const price = Number(item.price);
       const quantity = Number(item.quantity);
+      let price = Number(item.price);
+      let name = item.name;
+
+      // لو قدرنا نقرأ الشيت، نصدق سعر واسم المنتج منه بس — مش من المتصفح
+      if (realProducts) {
+        const real = realProducts.get(Number(item.id));
+        if (!real) throw new Error("منتج غير موجود في الكتالوج");
+        price = real.price;
+        name = real.name;
+      }
 
       if (
-        !item.name ||
+        !name ||
         !Number.isFinite(price) ||
         price <= 0 ||
         !Number.isInteger(quantity) ||
@@ -40,7 +109,7 @@ module.exports = async function handler(req, res) {
           currency: "EGP",
           unitAmount: Math.round(price * 100),
           productData: {
-            name: `${item.name} — ${item.size || ""} — ${item.color || ""}`.replace(/\s+—\s+$/g, "")
+            name: `${name} — ${item.size || ""} — ${item.color || ""}`.replace(/\s+—\s+$/g, "")
           }
         },
         quantity
