@@ -1730,6 +1730,11 @@ footer{
         row-gap: 10px;
     }
 
+    .cart-line-visual{
+        width: 60px;
+        height: 60px;
+    }
+
     .cart-line-price, .cart-line-remove{
         grid-column: 2;
     }
