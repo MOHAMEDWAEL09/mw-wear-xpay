@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <title>تم الدفع — MW WEAR</title>
+</head>
+<body>
+  <section class="cart-page" style="min-height:70vh;display:flex;align-items:center;justify-content:center">
+    <div class="summary-card" style="max-width:650px;width:100%;text-align:center">
+      <i class="fa-solid fa-circle-check" style="font-size:4rem;color:#16a34a;margin-bottom:20px"></i>
+      <h1 class="section-title">بنراجع عملية الدفع...</h1>
+      <p class="section-sub" id="statusText">استنى لحظة، بنتأكد من حالة العملية.</p>
+      <a href="index.html" class="btn-primary" style="margin-top:24px">العودة للمتجر</a>
+    </div>
+  </section>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const sessionId = params.get("session_id");
+  const status = document.getElementById("statusText");
+  if (!sessionId) { status.textContent = "تم الرجوع من الدفع، لكن مفيش رقم جلسة للتحقق."; return; }
+  try {
+    const r = await fetch(`/api/xpay-session?session_id=${encodeURIComponent(sessionId)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "تعذر التحقق");
+    if (data.paymentStatus === "paid") {
+      status.textContent = "تم الدفع بنجاح 🎉 جاري فتح واتساب لتأكيد بيانات الطلب.";
+      const pending = JSON.parse(localStorage.getItem("mw_pending_checkout") || "null");
+      localStorage.removeItem("mw_cart");
+      localStorage.removeItem("mw_pending_checkout");
+      if (pending && pending.customer) {
+        const items = (pending.items || []).map(l => `${l.id} | مقاس: ${l.size} | لون: ${l.color} | الكمية: ${l.qty}`).join("\n");
+        const message = `👋 طلب مدفوع من موقع MW WEAR\n\n👤 الاسم: ${pending.customer.name}\n📱 رقم التواصل: ${pending.customer.phone}\n📍 العنوان: ${pending.customer.address}${pending.customer.notes ? `\n📝 ملاحظات: ${pending.customer.notes}` : ""}\n\n🧾 تفاصيل الطلب:\n${items}\n\n💳 حالة الدفع: تم الدفع أونلاين\n🆔 رقم العملية: ${data.id}`;
+        setTimeout(() => window.location.href = `https://wa.me/201021611067?text=${encodeURIComponent(message)}`, 700);
+      }
+    } else {
+      status.textContent = "عملية الدفع لسه ما اتأكدتش نهائيًا. متدفعش مرة تانية دلوقتي؛ لو استخدمت طريقة دفع مؤجلة ممكن تحتاج شوية وقت.";
+    }
+  } catch (e) {
+    console.error(e);
+    status.textContent = "مقدرناش نتحقق من العملية دلوقتي. لو المبلغ اتخصم، متدفعش مرة تانية وتواصل معنا.";
+  }
+})();
+</script>
+</body>
+</html>

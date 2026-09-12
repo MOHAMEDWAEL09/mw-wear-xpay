@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="عربة التسوق — MW WEAR">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <title>عربة التسوق — MW WEAR</title>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">
+            <span class="logo-mark"><i class="fa-solid fa-shirt"></i></span>
+            MW WEAR
+        </a>
+        <div class="header-right">
+            <nav class="navigation" id="mainNav">
+                <a href="index.html">الرئيسية</a>
+                <a href="index.html#shop">المتجر</a>
+                <a href="index.html#categories">الفئات</a>
+                <a href="https://wa.me/201021611067" target="_blank" class="nav-cta"><i class="fa-brands fa-whatsapp"></i> تواصل معنا</a>
+            </nav>
+            <a href="cart.html#wishlist" class="cart-btn" aria-label="المفضلة">
+                <i class="fa-solid fa-heart"></i>
+                <span class="cart-badge" data-wishlist-badge>0</span>
+            </a>
+            <a href="cart.html" class="cart-btn" aria-label="عربة التسوق">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span class="cart-badge" data-cart-badge>0</span>
+            </a>
+            <button class="menu-toggle" id="menuToggle" aria-label="فتح القائمة">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </header>
+    <div class="nav-backdrop" id="navBackdrop"></div>
+
+    <section class="cart-page">
+        <div class="section-head" style="text-align:right;margin-bottom:36px">
+            <span class="eyebrow eyebrow-center">&lt;/&gt; checkout</span>
+            <h2 class="section-title">عربة التسوق</h2>
+        </div>
+
+        <div class="cart-tabs">
+            <button type="button" class="cart-tab active" data-tab="cart">عربة التسوق</button>
+            <button type="button" class="cart-tab" data-tab="wishlist">المفضلة</button>
+        </div>
+
+        <div class="cart-layout" id="cartLayout">
+            <div class="page-loader"><span class="spinner"></span></div>
+        </div>
+    </section>
+
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose" aria-label="قفل"><i class="fa-solid fa-xmark"></i></button>
+        <img id="lightboxImg" src="" alt="عرض الصورة كاملة">
+    </div>
+
+    <footer class="footer">
+        <div class="Copyrights"> <p>Copyrights @ <span>MW WEAR</span></p></div>
+        <div class="social-icons">
+            <a href="https://www.facebook.com/share/18GKZvEHwj/" target="_blank" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
+            <a href="https://wa.me/201021611067" target="_blank" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="https://www.tiktok.com/@mohamed_wael.33?_r=1&_t=ZS-98pmKZAes9F" target="_blank" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://www.instagram.com/mohamed_wael.33?igsh=d2Roa3dzOWVlbGI=" target="_blank" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        </div>
+        <a href="#" class="back-top" aria-label="رجوع لأعلى"><i class="fa-solid fa-arrow-up"></i></a>
+    </footer>
+
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+    <script>
+      (async () => {
+        await loadProducts();
+
+        const layout = document.getElementById("cartLayout");
+
+        function renderCart(){
+            const cart = getCart();
+
+            if(cart.length === 0){
+                layout.innerHTML = `
+                    <div class="cart-empty" style="grid-column:1/-1">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                        العربة فاضية دلوقتي.
+                        <br><br>
+                        <a href="index.html#shop" class="btn-primary" style="display:inline-flex">تصفح المنتجات</a>
+                    </div>`;
+                return;
+            }
+
+            const linesHtml = cart.map((line, index) => {
+                const p = getProductById(line.id);
+                if(!p) return "";
+                return `
+                    <div class="cart-line">
+                        <div class="cart-line-visual" style="background:${p.gradient}">
+                            <img src="${imageSrc(p)}" alt="${p.name}" data-zoom="${imageSrc(p)}" onerror="this.remove()">
+                            <i class="fa-solid ${p.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="cart-line-name">${p.name}</div>
+                            <div class="cart-line-meta">مقاس: ${line.size} · لون: ${line.color}</div>
+                            <div class="qty-stepper" style="margin-top:10px">
+                                <button type="button" data-minus="${index}">−</button>
+                                <input type="text" value="${line.qty}" data-qty="${index}" inputmode="numeric">
+                                <button type="button" data-plus="${index}">+</button>
+                            </div>
+                        </div>
+                        <div class="cart-line-price">${formatPrice(p.price * line.qty)}</div>
+                        <button type="button" class="cart-line-remove" data-remove="${index}" aria-label="حذف"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            }).join("");
+
+            layout.innerHTML = `
+                <div id="cartLines">${linesHtml}</div>
+
+                <div class="summary-card">
+                    <h3>ملخص الفاتورة</h3>
+                    <div class="summary-row"><span>عدد القطع</span><span>${cartCount()}</span></div>
+                    <div class="summary-row"><span>الإجمالي الفرعي</span><span>${formatPrice(cartTotal())}</span></div>
+                    <div class="summary-total"><span>الإجمالي</span><span>${formatPrice(cartTotal())}</span></div>
+
+                    <div class="field">
+                        <label for="custName">الاسم بالكامل</label>
+                        <input type="text" id="custName" placeholder="اكتب اسمك">
+                    </div>
+                    <div class="field">
+                        <label for="custPhone">رقم الموبايل</label>
+                        <input type="tel" id="custPhone" placeholder="01xxxxxxxxx">
+                    </div>
+                    <div class="field">
+                        <label for="custAddress">عنوان التوصيل</label>
+                        <textarea id="custAddress" rows="2" placeholder="المحافظة، المنطقة، أقرب علامة"></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="custNotes">ملاحظات (اختياري)</label>
+                        <textarea id="custNotes" rows="2" placeholder="أي تفاصيل إضافية"></textarea>
+                    </div>
+
+                    <button class="btn-primary" id="checkoutBtn"><i class="fa-solid fa-credit-card"></i> ادفع الآن</button>
+                    <p class="summary-note">هتنتقل لصفحة الدفع الآمنة من XPay لاختيار طريقة الدفع المناسبة.</p>
+                </div>
+            `;
+
+            document.getElementById("cartLines").addEventListener("click", e => {
+                const minus = e.target.closest("[data-minus]");
+                const plus = e.target.closest("[data-plus]");
+                const remove = e.target.closest("[data-remove]");
+                if(minus){
+                    const i = Number(minus.dataset.minus);
+                    updateCartQty(i, getCart()[i].qty - 1);
+                    renderCart();
+                } else if(plus){
+                    const i = Number(plus.dataset.plus);
+                    updateCartQty(i, getCart()[i].qty + 1);
+                    renderCart();
+                } else if(remove){
+                    removeCartLine(Number(remove.dataset.remove));
+                    renderCart();
+                    showToast("تم حذف المنتج من العربة");
+                }
+            });
+
+            document.getElementById("cartLines").addEventListener("change", e => {
+                const qtyField = e.target.closest("[data-qty]");
+                if(!qtyField) return;
+                const i = Number(qtyField.dataset.qty);
+                updateCartQty(i, parseInt(qtyField.value) || 1);
+                renderCart();
+            });
+
+            document.getElementById("checkoutBtn").addEventListener("click", async () => {
+                const name = document.getElementById("custName").value.trim();
+                const phone = document.getElementById("custPhone").value.trim();
+                const address = document.getElementById("custAddress").value.trim();
+                const notes = document.getElementById("custNotes").value.trim();
+
+                if(!name || !phone || !address){
+                    showToast("من فضلك املأ الاسم ورقم الموبايل والعنوان");
+                    return;
+                }
+
+                const cart = getCart();
+                if (!cart.length) {
+                    showToast("العربة فاضية");
+                    return;
+                }
+
+                const btn = document.getElementById("checkoutBtn");
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري تجهيز الدفع...';
+
+                try {
+                    const response = await fetch("/api/xpay-checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            customer: { name, phone, address, notes },
+                            items: cart.map(line => {
+                                const p = getProductById(line.id);
+                                return p ? {
+                                    id: line.id,
+                                    name: p.name,
+                                    price: Number(p.price),
+                                    quantity: Number(line.qty),
+                                    size: line.size,
+                                    color: line.color
+                                } : null;
+                            }).filter(Boolean)
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok || !data.url) throw new Error(data.error || "تعذر تجهيز الدفع");
+
+                    localStorage.setItem("mw_pending_checkout", JSON.stringify({
+                        customer: { name, phone, address, notes },
+                        items: cart,
+                        createdAt: Date.now()
+                    }));
+
+                    window.location.href = data.url;
+                } catch (error) {
+                    console.error(error);
+                    showToast(error.message || "حصل خطأ أثناء تجهيز الدفع");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-credit-card"></i> ادفع الآن';
+                }
+            });
+        }
+
+        renderCart();
+
+        function renderWishlist(){
+            const list = getWishlist();
+            if (list.length === 0){
+                layout.innerHTML = `
+                    <div class="cart-empty" style="grid-column:1/-1">
+                        <i class="fa-solid fa-heart"></i>
+                        لسه مفيش منتجات في المفضلة.
+                        <br><br>
+                        <a href="index.html#shop" class="btn-primary" style="display:inline-flex">تصفح المنتجات</a>
+                    </div>`;
+                return;
+            }
+
+            const cardsHtml = list.map(id => {
+                const p = getProductById(id);
+                if (!p) return "";
+                return `
+                    <a href="product.html?id=${p.id}" class="product-card">
+                        <div class="product-visual" style="background:${p.gradient}">
+                            ${p.oldPrice ? `<span class="badge-sale">خصم</span>` : ""}
+                            <button type="button" class="wishlist-btn active" data-wishlist-toggle="${p.id}" aria-label="حذف من المفضلة">
+                                <i class="fa-solid fa-heart"></i>
+                            </button>
+                            <img src="${imageSrc(p)}" alt="${p.name}" onerror="this.remove()">
+                            <i class="fa-solid ${p.icon}"></i>
+                        </div>
+                        <div class="product-body">
+                            <div class="product-cat">${p.category}</div>
+                            <div class="product-name">${p.name}</div>
+                            <div class="price-row">
+                                <span class="price">${formatPrice(p.price)}</span>
+                                ${p.oldPrice ? `<span class="price-old">${formatPrice(p.oldPrice)}</span>` : ""}
+                            </div>
+                        </div>
+                    </a>`;
+            }).join("");
+
+            layout.innerHTML = `<div class="product-grid" style="grid-column:1/-1">${cardsHtml}</div>`;
+        }
+
+        function updateTabLabels(){
+            document.querySelector('[data-tab="wishlist"]').textContent = "المفضلة" + (wishlistCount() ? ` (${wishlistCount()})` : "");
+        }
+
+        document.querySelectorAll(".cart-tab").forEach(tab => {
+            tab.addEventListener("click", () => {
+                document.querySelectorAll(".cart-tab").forEach(t => t.classList.remove("active"));
+                tab.classList.add("active");
+                if (tab.dataset.tab === "cart") renderCart(); else renderWishlist();
+            });
+        });
+
+        layout.addEventListener("click", e => {
+            const btn = e.target.closest("[data-wishlist-toggle]");
+            if (!btn) return;
+            e.preventDefault();
+            toggleWishlist(btn.dataset.wishlistToggle);
+            updateTabLabels();
+            renderWishlist();
+        });
+
+        updateTabLabels();
+
+        if (location.hash === "#wishlist") {
+            document.querySelector('[data-tab="wishlist"]').click();
+        }
+
+        /* عرض صورة المنتج كاملة الشاشة لو دوس عليها */
+        const lightbox = document.getElementById("lightbox");
+        const lightboxImg = document.getElementById("lightboxImg");
+
+        document.getElementById("cartLayout").addEventListener("click", e => {
+            const zoomImg = e.target.closest("[data-zoom]");
+            if (!zoomImg) return;
+            lightboxImg.src = zoomImg.dataset.zoom;
+            lightbox.classList.add("show");
+            document.body.style.overflow = "hidden";
+        });
+
+        function closeLightbox() {
+            lightbox.classList.remove("show");
+            document.body.style.overflow = "";
+        }
+
+        document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+        lightbox.addEventListener("click", e => {
+            if (e.target === lightbox) closeLightbox();
+        });
+        document.addEventListener("keydown", e => {
+            if (lightbox.classList.contains("show") && e.key === "Escape") closeLightbox();
+        });
+      })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+MW WEAR — تشغيل الدفع عبر XPay
+================================
+
+1) Vercel Environment Variables
+--------------------------------
+أضف:
+XPAY_SECRET_KEY = مفتاح XPay السري التجريبي sk_test_...
+XPAY_WEBHOOK_SECRET = مفتاح webhook الذي يبدأ بـ whsec_... (بعد إنشاء webhook في XPay)
+SITE_URL = رابط موقعك النهائي، مثال: https://mwwear.vercel.app
+
+فعّلها على Production و Preview ثم اعمل Redeploy.
+
+2) XPay Webhook
+---------------
+بعد نشر الموقع:
+Developers → Webhooks → Add endpoint
+Endpoint URL:
+https://YOUR-DOMAIN.vercel.app/api/xpay-webhook
+
+اختَر على الأقل:
+checkout.session.completed
+checkout.session.async_payment_succeeded
+
+انسخ whsec_... وضعه في Vercel باسم XPAY_WEBHOOK_SECRET.
+
+3) تجربة الدفع
+--------------
+- افتح الموقع.
+- أضف منتج للعربة.
+- اكتب الاسم والموبايل والعنوان.
+- اضغط «ادفع الآن».
+- ستنتقل إلى XPay Hosted Checkout.
+- استخدم بيانات اختبار XPay من وضع Test Mode.
+
+مهم: مفتاح sk_test_ لا يوضع داخل HTML أو JavaScript في المتصفح.

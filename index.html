@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MW WEAR — متجر ملابس أونلاين. تيشيرتات، هوديز، جاكيتات وبناطيل بأسعار مناسبة وتوصيل لحد الباب.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <title>MW WEAR — متجر الملابس</title>
+</head>
+<body>
+
+    <div class="site-loader" id="siteLoader"><span class="spinner"></span></div>
+
+    <header>
+        <a href="index.html" class="logo">
+            <span class="logo-mark"><i class="fa-solid fa-shirt"></i></span>
+            MW WEAR
+        </a>
+        <div class="header-right">
+            <nav class="navigation" id="mainNav">
+                <a href="index.html">الرئيسية</a>
+                <a href="#shop">المتجر</a>
+                <a href="#categories">الفئات</a>
+                <a href="https://wa.me/201021611067" target="_blank" class="nav-cta"><i class="fa-brands fa-whatsapp"></i> تواصل معنا</a>
+            </nav>
+            <a href="cart.html#wishlist" class="cart-btn" aria-label="المفضلة">
+                <i class="fa-solid fa-heart"></i>
+                <span class="cart-badge" data-wishlist-badge>0</span>
+            </a>
+            <a href="cart.html" class="cart-btn" aria-label="عربة التسوق">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span class="cart-badge" data-cart-badge>0</span>
+            </a>
+            <button class="menu-toggle" id="menuToggle" aria-label="فتح القائمة">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </header>
+    <div class="nav-backdrop" id="navBackdrop"></div>
+
+
+    <section class="main">
+        <div class="hero-bg" id="heroBg" aria-hidden="true"></div>
+        <div class="hero-inner">
+            <div>
+                <span class="hero-kicker">التشكيلة الجديدة — خريف/شتاء 2026</span>
+                <h1>المتجر اللي <em>هيفرق في شكلك</em><br>بأحسن الأسعار</h1>
+                <div class="hero-actions">
+                    <a href="#shop" class="main-btn">تسوق دلوقتي <i class="fa-solid fa-arrow-left"></i></a>
+                    <a href="https://wa.me/201021611067" target="_blank" class="ghost-btn">تواصل معنا</a>
+                </div>
+                <div class="hero-stats">
+                    <div><strong>+16</strong><span>قطعة متاحة</span></div>
+                    <div><strong>24 ساعة</strong><span>سرعة الرد</span></div>
+                    <div><strong>100%</strong><span>خامات أصلية</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-dots" id="heroDots" aria-hidden="true"></div>
+    </section>
+
+    <section class="section categories" id="categories">
+        <div class="section-head">
+            <span class="eyebrow eyebrow-center"> categories</span>
+            <h2 class="section-title">تسوق حسب الفئة</h2>
+            <p class="section-sub">دوس على الفئة اللي نفسك فيها وشوف كل الموديلات</p>
+        </div>
+        <div class="category-row" id="categoryRow">
+            <a href="#shop" class="category-pill active" data-cat="الكل"><i class="fa-solid fa-border-all"></i> الكل</a>
+        </div>
+    </section>
+
+    <section class="section" id="shop">
+        <div class="section-head">
+            <span class="eyebrow eyebrow-center">shop</span>
+            <h2 class="section-title">كل المنتجات</h2>
+            <p class="section-sub">دوس على أي منتج تشوف تفاصيله وتختار المقاس واللون</p>
+        </div>
+        <div class="shop-toolbar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="دور على منتج...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <span class="toolbar-label">ترتيب حسب</span>
+            <select id="sortSelect" class="sort-select">
+                <option value="default">الأحدث</option>
+                <option value="price-asc">السعر: من الأقل للأعلى</option>
+                <option value="price-desc">السعر: من الأعلى للأقل</option>
+            </select>
+        </div>
+        <div class="product-grid" id="productGrid"></div>
+    </section>
+
+
+    <footer class="footer">
+        <div class="Copyrights"> <p>Copyrights @ <span>MW WEAR</span></p></div>
+        <div class="social-icons">
+            <a href="https://www.facebook.com/share/18GKZvEHwj/" target="_blank" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
+            <a href="https://wa.me/201021611067" target="_blank" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="https://www.tiktok.com/@mohamed_wael.33?_r=1&_t=ZS-98pmKZAes9F" target="_blank" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://www.instagram.com/mohamed_wael.33?igsh=d2Roa3dzOWVlbGI=" target="_blank" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        </div>
+        <a href="#" class="back-top" aria-label="رجوع لأعلى"><i class="fa-solid fa-arrow-up"></i></a>
+    </footer>
+
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+    <script>
+      (async () => {
+        await loadProducts();
+
+        /* خلفية الهيرو المتحركة: بتاخد صور المنتجات نفسها وتقلبها،
+           ولو مفيش صور منتجات شغالة بترجع لصور images/hero/ كبديل */
+        async function buildHeroSlides(){
+            const heroBg = document.getElementById("heroBg");
+            const dotsBox = document.getElementById("heroDots");
+            if (!heroBg || !dotsBox) return;
+
+            const productCandidates = PRODUCTS.slice(0, 8).map(p => coverImage(p));
+            let slides = (await Promise.all(productCandidates.map(preloadImage))).filter(Boolean);
+
+            if (slides.length === 0) {
+                const heroCandidates = [1, 2, 3, 4, 5, 6].map(n => `images/hero/${n}.jpg`);
+                slides = (await Promise.all(heroCandidates.map(preloadImage))).filter(Boolean);
+            }
+            if (slides.length === 0) return;
+
+            heroBg.innerHTML = slides.map((src, i) => `<img src="${src}" alt="" class="${i === 0 ? "active" : ""}">`).join("");
+            dotsBox.innerHTML = slides.map((_, i) => `<span class="${i === 0 ? "active" : ""}"></span>`).join("");
+
+            if (slides.length > 1) {
+                let idx = 0;
+                const imgs = heroBg.querySelectorAll("img");
+                const dots = dotsBox.querySelectorAll("span");
+                setInterval(() => {
+                    imgs[idx].classList.remove("active");
+                    dots[idx].classList.remove("active");
+                    idx = (idx + 1) % slides.length;
+                    imgs[idx].classList.add("active");
+                    dots[idx].classList.add("active");
+                }, 2200);
+            }
+        }
+        await buildHeroSlides();
+        document.getElementById("siteLoader").classList.add("hide");
+
+        const grid = document.getElementById("productGrid");
+        const catRow = document.getElementById("categoryRow");
+
+        CATEGORIES.forEach(cat => {
+            const pill = document.createElement("a");
+            pill.href = "#shop";
+            pill.className = "category-pill";
+            pill.dataset.cat = cat;
+            pill.innerHTML = `<i class="fa-solid fa-tag"></i> ${cat}`;
+            catRow.appendChild(pill);
+        });
+
+        let currentCategory = "الكل";
+
+        function renderProducts(filter){
+            currentCategory = filter;
+            grid.innerHTML = "";
+            let list = filter && filter !== "الكل" ? PRODUCTS.filter(p => p.category === filter) : PRODUCTS.slice();
+
+            const query = document.getElementById("searchInput").value.trim().toLowerCase();
+            if (query) {
+                list = list.filter(p =>
+                    (p.name || "").toLowerCase().includes(query) ||
+                    (p.description || "").toLowerCase().includes(query)
+                );
+            }
+
+            const sortValue = document.getElementById("sortSelect").value;
+            if (sortValue === "price-asc") list = list.slice().sort((a, b) => a.price - b.price);
+            else if (sortValue === "price-desc") list = list.slice().sort((a, b) => b.price - a.price);
+
+            if (list.length === 0) {
+                grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">مفيش منتجات مطابقة</p>`;
+                return;
+            }
+
+            list.forEach(p => {
+                const card = document.createElement("a");
+                card.href = `product.html?id=${p.id}`;
+                card.className = "product-card";
+                card.innerHTML = `
+                  <div class="product-visual" style="background:${p.gradient}">
+                        ${p.oldPrice ? `<span class="badge-sale">خصم</span>` : ""}
+                        <img src="${imageSrc(p)}" alt="${p.name}" loading="lazy" onerror="this.remove()">
+                        <i class="fa-solid ${p.icon}"></i>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-cat">${p.category}</div>
+                        <div class="product-name">${p.name}</div>
+                        <div class="price-row">
+                            <span class="price">${formatPrice(p.price)}</span>
+                            ${p.oldPrice ? `<span class="price-old">${formatPrice(p.oldPrice)}</span>` : ""}
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        grid.addEventListener("click", e => {
+            const btn = e.target.closest("[data-wishlist-toggle]");
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const active = toggleWishlist(btn.dataset.wishlistToggle);
+            btn.classList.toggle("active", active);
+        });
+
+        catRow.addEventListener("click", e => {
+            const pill = e.target.closest(".category-pill");
+            if(!pill) return;
+            document.querySelectorAll(".category-pill").forEach(p => p.classList.remove("active"));
+            pill.classList.add("active");
+            renderProducts(pill.dataset.cat);
+        });
+
+        document.getElementById("sortSelect").addEventListener("change", () => {
+            renderProducts(currentCategory);
+        });
+
+        document.getElementById("searchInput").addEventListener("input", () => {
+            renderProducts(currentCategory);
+        });
+
+        renderProducts("الكل");
+      })();
+    </script>
+</body>
+</html>

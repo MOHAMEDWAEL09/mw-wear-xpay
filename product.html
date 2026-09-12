@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="تفاصيل المنتج — MW WEAR">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <title>تفاصيل المنتج — MW WEAR</title>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">
+            <span class="logo-mark"><i class="fa-solid fa-shirt"></i></span>
+            MW WEAR
+        </a>
+        <div class="header-right">
+            <nav class="navigation" id="mainNav">
+                <a href="index.html">الرئيسية</a>
+                <a href="index.html#shop">المتجر</a>
+                <a href="index.html#categories">الفئات</a>
+                <a href="https://wa.me/201021611067" target="_blank" class="nav-cta"><i class="fa-brands fa-whatsapp"></i> تواصل معنا</a>
+            </nav>
+            <a href="cart.html#wishlist" class="cart-btn" aria-label="المفضلة">
+                <i class="fa-solid fa-heart"></i>
+                <span class="cart-badge" data-wishlist-badge>0</span>
+            </a>
+            <a href="cart.html" class="cart-btn" aria-label="عربة التسوق">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span class="cart-badge" data-cart-badge>0</span>
+            </a>
+            <button class="menu-toggle" id="menuToggle" aria-label="فتح القائمة">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </header>
+    <div class="nav-backdrop" id="navBackdrop"></div>
+
+    <section class="product-detail" id="detailRoot">
+        <div class="page-loader" style="grid-column:1/-1"><span class="spinner"></span></div>
+    </section>
+
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose" aria-label="قفل"><i class="fa-solid fa-xmark"></i></button>
+        <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="الصورة السابقة"><i class="fa-solid fa-chevron-right"></i></button>
+        <img id="lightboxImg" src="" alt="عرض الصورة كاملة">
+        <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="الصورة التالية"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="lightbox-counter" id="lightboxCounter"></div>
+    </div>
+
+    <footer class="footer">
+        <div class="Copyrights"> <p>Copyrights @ <span>MW WEAR</span></p></div>
+        <div class="social-icons">
+            <a href="https://www.facebook.com/share/18GKZvEHwj/" target="_blank" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
+            <a href="https://wa.me/201021611067" target="_blank" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="https://www.tiktok.com/@mohamed_wael.33?_r=1&_t=ZS-98pmKZAes9F" target="_blank" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://www.instagram.com/mohamed_wael.33?igsh=d2Roa3dzOWVlbGI=" target="_blank" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        </div>
+        <a href="#" class="back-top" aria-label="رجوع لأعلى"><i class="fa-solid fa-arrow-up"></i></a>
+    </footer>
+
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+    <script>
+      (async () => {
+        await loadProducts();
+
+        const params = new URLSearchParams(location.search);
+        const product = getProductById(params.get("id"));
+        const root = document.getElementById("detailRoot");
+
+        if(!product){
+            root.innerHTML = `<div class="cart-empty" style="grid-column:1/-1">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                المنتج مش موجود.
+                <br><br><a href="index.html" class="btn-primary" style="display:inline-flex;margin-top:14px">رجوع للمتجر</a>
+            </div>`;
+        } else {
+            document.title = product.name + " — MW WEAR";
+
+            let selectedSize = product.sizes[0];
+            let selectedColor = product.colors[0];
+            let qty = 1;
+
+            root.innerHTML = `
+                <a href="index.html#shop" class="back-link"><i class="fa-solid fa-arrow-right"></i> رجوع للمتجر</a>
+
+                <div class="detail-media">
+                    <div class="detail-visual" id="mainVisual" style="background:${product.gradient}">
+                        <img id="mainProductImage" src="${coverImage(product)}" alt="${product.name}" onerror="this.remove()">
+                        <i class="fa-solid ${product.icon}"></i>
+                        <span class="zoom-hint"><i class="fa-solid fa-magnifying-glass-plus"></i> دوس للتكبير</span>
+                    </div>
+                    <div class="gallery-thumbs" id="galleryThumbs"></div>
+                </div>
+
+                <div class="detail-info">
+                    <div class="product-cat">${product.category}</div>
+                    <h1>${product.name}</h1>
+                    <div class="detail-price">
+                        <span class="price">${formatPrice(product.price)}</span>
+                        ${product.oldPrice ? `<span class="price-old">${formatPrice(product.oldPrice)}</span>` : ""}
+                    </div>
+                    <p class="detail-short">${product.description}</p>
+
+                    <div class="option-group">
+                        <span class="option-label">المقاس</span>
+                        <div class="option-chips" id="sizeChips">
+                            ${product.sizes.map((s,i) => `<button type="button" class="chip ${i===0?"selected":""}" data-size="${s}">${s}</button>`).join("")}
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <span class="option-label">اللون</span>
+                        <div class="option-chips" id="colorChips">
+                            ${product.colors.map((c,i) => `<button type="button" class="chip ${i===0?"selected":""}" data-color="${c}">${c}</button>`).join("")}
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <span class="option-label">الكمية</span>
+                        <div class="qty-stepper">
+                            <button type="button" id="qtyMinus">−</button>
+                            <input type="text" id="qtyInput" value="1" inputmode="numeric">
+                            <button type="button" id="qtyPlus">+</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-actions">
+                        <button class="btn-primary" id="addCartBtn"><i class="fa-solid fa-bag-shopping"></i> أضف للعربة</button>
+                        <button class="btn-outline" id="buyNowBtn"><i class="fa-brands fa-whatsapp"></i> اطلب الآن مباشرة</button>
+                        <button class="btn-outline" id="wishlistBtn" aria-label="أضف للمفضلة"><i class="fa-solid fa-heart"></i></button>
+                    </div>
+
+                    <div class="detail-block">
+                        <h3>مواصفات المنتج</h3>
+                        <ul>${product.details.map(d => `<li>${d}</li>`).join("")}</ul>
+                    </div>
+
+                    <div class="detail-block">
+                        <h3>الشحن والدفع</h3>
+                        <p>بعد ما تختار المقاس واللون وتضغط "اطلب الآن"، هيتفتح واتساب برسالة فيها ملخص طلبك — وهيتم تأكيد طريقة الدفع (كاش عند الاستلام / تحويل) وموعد التوصيل معاك مباشرة على واتساب.</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById("sizeChips").addEventListener("click", e => {
+                const chip = e.target.closest(".chip");
+                if(!chip) return;
+                document.querySelectorAll("#sizeChips .chip").forEach(c => c.classList.remove("selected"));
+                chip.classList.add("selected");
+                selectedSize = chip.dataset.size;
+            });
+
+            document.getElementById("colorChips").addEventListener("click", e => {
+                const chip = e.target.closest(".chip");
+                if(!chip) return;
+                document.querySelectorAll("#colorChips .chip").forEach(c => c.classList.remove("selected"));
+                chip.classList.add("selected");
+                selectedColor = chip.dataset.color;
+            });
+
+            const qtyInput = document.getElementById("qtyInput");
+            document.getElementById("qtyMinus").addEventListener("click", () => {
+                qty = Math.max(1, qty - 1);
+                qtyInput.value = qty;
+            });
+            document.getElementById("qtyPlus").addEventListener("click", () => {
+                qty += 1;
+                qtyInput.value = qty;
+            });
+            qtyInput.addEventListener("change", () => {
+                qty = Math.max(1, parseInt(qtyInput.value) || 1);
+                qtyInput.value = qty;
+            });
+
+            document.getElementById("addCartBtn").addEventListener("click", () => {
+                addToCart(product.id, selectedSize, selectedColor, qty);
+                showToast("تمت إضافة المنتج للعربة ✓");
+            });
+
+            document.getElementById("buyNowBtn").addEventListener("click", () => {
+                addToCart(product.id, selectedSize, selectedColor, qty);
+                location.href = "cart.html";
+            });
+
+            const wishlistBtn = document.getElementById("wishlistBtn");
+            if (isWishlisted(product.id)) wishlistBtn.classList.add("active-heart");
+            wishlistBtn.addEventListener("click", () => {
+                const active = toggleWishlist(product.id);
+                wishlistBtn.classList.toggle("active-heart", active);
+            });
+
+            let currentGallery = [];
+            let activeIndex = 0;
+
+            /* تحميل باقي صور المنتج (لو موجودة) وبناء شريط الصور المصغرة */
+            loadProductGallery(product).then(gallery => {
+                const thumbsBox = document.getElementById("galleryThumbs");
+                const mainImg = document.getElementById("mainProductImage");
+                if (gallery.length === 0) return;
+
+                currentGallery = gallery;
+
+                if (mainImg) {
+                    mainImg.src = gallery[0];
+                } else {
+                    const visual = document.getElementById("mainVisual");
+                    const freshImg = document.createElement("img");
+                    freshImg.id = "mainProductImage";
+                    freshImg.alt = product.name;
+                    freshImg.src = gallery[0];
+                    visual.prepend(freshImg);
+                }
+
+                if (gallery.length < 2) return;
+
+                thumbsBox.innerHTML = gallery.map((src, i) =>
+                    `<img src="${src}" data-src="${src}" data-index="${i}" class="${i === 0 ? "active" : ""}" alt="صورة ${i + 1}">`
+                ).join("");
+
+                thumbsBox.addEventListener("click", e => {
+                    const thumb = e.target.closest("img");
+                    if (!thumb) return;
+                    activeIndex = Number(thumb.dataset.index);
+                    document.getElementById("mainProductImage").src = thumb.dataset.src;
+                    thumbsBox.querySelectorAll("img").forEach(t => t.classList.remove("active"));
+                    thumb.classList.add("active");
+                });
+            });
+
+            /* ---------- عرض الصورة كاملة الشاشة (Lightbox) ---------- */
+            const lightbox = document.getElementById("lightbox");
+            const lightboxImg = document.getElementById("lightboxImg");
+            const lightboxCounter = document.getElementById("lightboxCounter");
+            let lightboxIndex = 0;
+
+            function openLightbox(startIndex) {
+                const gallery = currentGallery.length ? currentGallery : [coverImage(product)];
+                lightboxIndex = startIndex;
+                renderLightbox(gallery);
+                lightbox.classList.add("show");
+                document.body.style.overflow = "hidden";
+            }
+
+            function renderLightbox(gallery) {
+                lightboxImg.src = gallery[lightboxIndex];
+                const showCounter = gallery.length > 1;
+                lightboxCounter.style.display = showCounter ? "block" : "none";
+                lightboxCounter.textContent = showCounter ? `${lightboxIndex + 1} / ${gallery.length}` : "";
+                document.getElementById("lightboxPrev").style.display = showCounter ? "flex" : "none";
+                document.getElementById("lightboxNext").style.display = showCounter ? "flex" : "none";
+            }
+
+            function closeLightbox() {
+                lightbox.classList.remove("show");
+                document.body.style.overflow = "";
+            }
+
+            function stepLightbox(delta) {
+                const gallery = currentGallery.length ? currentGallery : [coverImage(product)];
+                lightboxIndex = (lightboxIndex + delta + gallery.length) % gallery.length;
+                renderLightbox(gallery);
+            }
+
+            document.getElementById("mainVisual").addEventListener("click", () => openLightbox(activeIndex));
+            document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+            document.getElementById("lightboxPrev").addEventListener("click", () => stepLightbox(1));
+            document.getElementById("lightboxNext").addEventListener("click", () => stepLightbox(-1));
+            lightbox.addEventListener("click", e => {
+                if (e.target === lightbox) closeLightbox();
+            });
+            document.addEventListener("keydown", e => {
+                if (!lightbox.classList.contains("show")) return;
+                if (e.key === "Escape") closeLightbox();
+                if (e.key === "ArrowLeft") stepLightbox(-1);
+                if (e.key === "ArrowRight") stepLightbox(1);
+            });
+        }
+      })();
+    </script>
+</body>
+</html>
