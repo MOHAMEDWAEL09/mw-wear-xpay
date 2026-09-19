@@ -3,6 +3,25 @@ function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = 20; // أعلى من الـ checkout لأنها بتتنادى تلقائي أثناء الانتظار على نتيجة الدفع
+const ipHits = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const hits = (ipHits.get(ip) || []).filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+  hits.push(now);
+  ipHits.set(ip, hits);
+  if (ipHits.size > 5000) ipHits.clear();
+  return hits.length > RATE_LIMIT_MAX;
+}
+
+function getClientIp(req) {
+  const fwd = req.headers["x-forwarded-for"];
+  if (fwd) return String(fwd).split(",")[0].trim();
+  return req.socket?.remoteAddress || "unknown";
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "GET") {
     return json(res, 405, { error: "Method not allowed" });
@@ -10,6 +29,11 @@ module.exports = async function handler(req, res) {
 
   if (!process.env.XPAY_SECRET_KEY) {
     return json(res, 500, { error: "XPAY_SECRET_KEY is not configured" });
+  }
+
+  const ip = getClientIp(req);
+  if (isRateLimited(ip)) {
+    return json(res, 429, { error: "طلبات كتير في وقت قصير، حاول تاني بعد شوية" });
   }
 
   const sessionId = String(req.query?.session_id || "").trim();
