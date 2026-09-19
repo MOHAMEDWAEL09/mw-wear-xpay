@@ -343,23 +343,55 @@ function rowToProduct(cols) {
   };
 }
 
-/* بتحمل المنتجات: من الشيت لو الرابط متظبط، أو من القايمة الافتراضية */
+/* بتحمل المنتجات: من الشيت لو الرابط متظبط، أو من القايمة الافتراضية.
+   بنستخدم كاش في sessionStorage لمدة PRODUCTS_CACHE_TTL_MS عشان التنقل
+   بين الصفحات (الرئيسية/منتج/عربة) ميحملش من الشيت من الصفر كل مرة. */
+const PRODUCTS_CACHE_KEY = "mw_products_cache_v1";
+const PRODUCTS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 دقايق — غيّرها لو عايز تحديث أسرع/أبطأ بعد تعديل الشيت
+
+function readProductsCache(ignoreTTL) {
+  try {
+    const raw = sessionStorage.getItem(PRODUCTS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!ignoreTTL && Date.now() - parsed.savedAt > PRODUCTS_CACHE_TTL_MS) return null;
+    return parsed.products;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeProductsCache(products) {
+  try {
+    sessionStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), products }));
+  } catch (e) {
+    // sessionStorage ممكن يفشل في وضع التصفح الخفي مثلاً — مش مشكلة، هيرجع يحمل من الشيت عادي
+  }
+}
+
 async function loadProducts() {
   if (!SHEET_CSV_URL) {
     PRODUCTS = DEFAULT_PRODUCTS;
   } else {
-    try {
-      const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
-      const text = await res.text();
-      const rows = parseCSV(text);
-      const dataRows = rows.slice(1); // أول سطر عناوين الأعمدة
-      const parsed = dataRows
-        .map(rowToProduct)
-        .filter(p => p.name && Number.isFinite(p.id));
-      PRODUCTS = parsed.length ? parsed : DEFAULT_PRODUCTS;
-    } catch (err) {
-      console.error("تعذر تحميل المنتجات من الشيت، هيتم عرض منتجات تجريبية بدلها:", err);
-      PRODUCTS = DEFAULT_PRODUCTS;
+    const cached = readProductsCache();
+    if (cached && cached.length) {
+      PRODUCTS = cached;
+    } else {
+      try {
+        const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+        const text = await res.text();
+        const rows = parseCSV(text);
+        const dataRows = rows.slice(1); // أول سطر عناوين الأعمدة
+        const parsed = dataRows
+          .map(rowToProduct)
+          .filter(p => p.name && Number.isFinite(p.id));
+        PRODUCTS = parsed.length ? parsed : DEFAULT_PRODUCTS;
+        if (parsed.length) writeProductsCache(PRODUCTS);
+      } catch (err) {
+        console.error("تعذر تحميل المنتجات من الشيت، هيتم عرض منتجات تجريبية بدلها:", err);
+        // لو فيه نسخة قديمة في الكاش (حتى لو منتهية)، أفضل من الرجوع للمنتجات التجريبية
+        PRODUCTS = readProductsCache(true) || DEFAULT_PRODUCTS;
+      }
     }
   }
   CATEGORIES = [...new Set(PRODUCTS.map(p => p.category))];
