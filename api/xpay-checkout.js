@@ -5,6 +5,35 @@ const XPAY_URL = "https://api.xpay.app/checkout/sessions";
    (لو حد لعب في الطلب من الـ DevTools وبعت سعر أقل) */
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSnV8Wp800X1TpnZBU3ej1AqJ9Mt_WE4vtYcUUUbaOWRnZR3mix6QkEVlHZcCklcXsSj8ahAEHMXKfO/pub?gid=1805255167&single=true&output=csv";
 
+// أقصى عدد سطور مسموح بيه في الطلب الواحد (حماية من طلب مفتعل فيه آلاف المنتجات)
+const MAX_ITEMS_PER_ORDER = 30;
+
+// مدة صلاحية الكاش الخاص بأسعار الشيت (تقلل عدد المرات اللي بنكلم فيها Google في نفس الدقايق)
+const SHEET_CACHE_TTL_MS = 3 * 60 * 1000;
+
+// كاش بسيط في الذاكرة (بيفضل موجود طول ما نفس الـ serverless instance شغالة)
+let sheetCache = { data: null, fetchedAt: 0 };
+
+// عداد بسيط لكل IP لتقليل تأثير أي محاولة إغراق بالطلبات من نفس المصدر
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = 8;
+const ipHits = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const hits = (ipHits.get(ip) || []).filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+  hits.push(now);
+  ipHits.set(ip, hits);
+  if (ipHits.size > 5000) ipHits.clear(); // أمان إضافي ضد تضخم الذاكرة نفسها
+  return hits.length > RATE_LIMIT_MAX;
+}
+
+function getClientIp(req) {
+  const fwd = req.headers["x-forwarded-for"];
+  if (fwd) return String(fwd).split(",")[0].trim();
+  return req.socket?.remoteAddress || "unknown";
+}
+
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json");
   res.end(JSON.stringify(body));
@@ -38,13 +67,18 @@ function parseCSV(text) {
   return rows.filter(r => r.some(c => c.trim() !== ""));
 }
 
-/* بيرجع Map من id للسعر والاسم الحقيقيين من الشيت.
-   لو الشيت مش متاح دلوقتي، بيرجع null عشان نعرف إننا مش قادرين
-   نتأكد ونتصرف بحذر بدل ما نمنع البيع بالكامل. */
+/* بيرجع Map من id للسعر والاسم الحقيقيين من الشيت، مع كاش لمدة SHEET_CACHE_TTL_MS.
+   لو الشيت فشل يترد ومعندناش كاش قديم نرجع عليه، بنرجع null — والـ handler
+   وقتها بيرفض الطلب بدل ما يصدق سعر جاي من المتصفح. */
 async function fetchRealProducts() {
+  const now = Date.now();
+  if (sheetCache.data && now - sheetCache.fetchedAt < SHEET_CACHE_TTL_MS) {
+    return sheetCache.data;
+  }
+
   try {
     const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
-    if (!res.ok) return null;
+    if (!res.ok) throw new Error(`sheet fetch failed: ${res.status}`);
     const text = await res.text();
     const rows = parseCSV(text).slice(1);
     const map = new Map();
@@ -56,10 +90,13 @@ async function fetchRealProducts() {
         map.set(id, { name, price });
       }
     });
-    return map.size ? map : null;
+    if (!map.size) throw new Error("empty product sheet");
+    sheetCache = { data: map, fetchedAt: now };
+    return map;
   } catch (e) {
     console.error("Could not verify prices against sheet", e);
-    return null;
+    // لو عندنا نسخة قديمة في الكاش (حتى لو منتهية)، أفضل من رفض كل الطلبات
+    return sheetCache.data || null;
   }
 }
 
@@ -67,6 +104,16 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
   if (!process.env.XPAY_SECRET_KEY) {
     return json(res, 500, { error: "XPAY_SECRET_KEY is not configured" });
+  }
+  if (!process.env.SITE_URL) {
+    // من غيرها هنضطر نصدق Host header اللي جاي في الطلب، وده ممكن يتزوّر
+    // ويوجّه العميل بعد الدفع لرابط تاني — لازم يتحدد ثابت من الإعدادات
+    return json(res, 500, { error: "SITE_URL is not configured" });
+  }
+
+  const ip = getClientIp(req);
+  if (isRateLimited(ip)) {
+    return json(res, 429, { error: "طلبات كتير في وقت قصير، حاول تاني بعد شوية" });
   }
 
   try {
@@ -78,25 +125,25 @@ module.exports = async function handler(req, res) {
       return json(res, 400, { error: "بيانات العميل أو المنتجات ناقصة" });
     }
 
+    if (items.length > MAX_ITEMS_PER_ORDER) {
+      return json(res, 400, { error: "عدد المنتجات في الطلب أكبر من المسموح" });
+    }
+
     const realProducts = await fetchRealProducts();
+
+    if (!realProducts) {
+      // مش قادرين نتأكد من الأسعار الحقيقية دلوقتي — أرفض بدل ما أصدق سعر المتصفح
+      return json(res, 503, { error: "الخدمة مشغولة حاليًا، من فضلك حاول تاني بعد لحظات" });
+    }
 
     const lineItems = items.map((item) => {
       const quantity = Number(item.quantity);
-      let price = Number(item.price);
-      let name = item.name;
-
-      // لو قدرنا نقرأ الشيت، نصدق سعر واسم المنتج منه بس — مش من المتصفح
-      if (realProducts) {
-        const real = realProducts.get(Number(item.id));
-        if (!real) throw new Error("منتج غير موجود في الكتالوج");
-        price = real.price;
-        name = real.name;
-      }
+      const real = realProducts.get(Number(item.id));
+      if (!real) throw new Error("منتج غير موجود في الكتالوج");
+      const price = real.price;
+      const name = real.name;
 
       if (
-        !name ||
-        !Number.isFinite(price) ||
-        price <= 0 ||
         !Number.isInteger(quantity) ||
         quantity < 1 ||
         quantity > 99
@@ -116,9 +163,7 @@ module.exports = async function handler(req, res) {
       };
     });
 
-    const origin = process.env.SITE_URL
-      ? process.env.SITE_URL.replace(/\/$/, "")
-      : `https://${req.headers.host}`;
+    const origin = process.env.SITE_URL.replace(/\/$/, "");
 
     const payload = {
       uiMode: "hosted",
